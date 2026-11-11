@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}Quản lý bài giảng: {{ course.title }} - Giảng viên{% endblock %}
+
+{% block content %}
+<!-- BREADCRUMBS -->
+<nav class="flex items-center text-xs text-slate-500 mb-4 space-x-2">
+    <a href="{% url 'courses:teacher_dashboard' %}" class="hover:text-blue-600">Quản lý bài giảng</a>
+    <span>/</span>
+    <span class="text-slate-800 font-semibold">{{ course.code }}</span>
+</nav>
+
+<!-- HEADER WITH ACTION BUTTON -->
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+    <div>
+        <div class="flex items-center gap-2 mb-1">
+            <span class="px-2 py-0.5 rounded text-xs font-bold text-white uppercase
+                {% if course.code == 'WORD' %}bg-blue-600
+                {% elif course.code == 'EXCEL' %}bg-emerald-600
+                {% else %}bg-amber-600{% endif %}">
+                {{ course.code }}
+            </span>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900">{{ course.title }}</h1>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-500">Danh sách các bài giảng video, slide, PDF và form kiểm tra đã thiết lập.</p>
+    </div>
+    
+    <div class="flex items-center gap-2">
+        <a href="{% url 'courses:course_detail' course.code %}" 
+           class="inline-flex items-center px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition">
+            <i class="fa-solid fa-eye mr-2"></i>Xem thử
+        </a>
+        <a href="{% url 'courses:teacher_lesson_create' course.code %}" 
+           class="inline-flex items-center px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition">
+            <i class="fa-solid fa-plus mr-2"></i>Thêm bài giảng mới
+        </a>
+    </div>
+</div>
+
+<!-- LESSONS TABLE -->
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-sm">
+            <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase text-slate-500 tracking-wider">
+                    <th class="py-3 px-4 w-16 text-center">Thứ tự</th>
+                    <th class="py-3 px-4">Tên bài giảng & Nội dung</th>
+                    <th class="py-3 px-4 w-36">Loại học liệu</th>
+                    <th class="py-3 px-4 w-48">Nguồn liên kết (Embed)</th>
+                    <th class="py-3 px-4 w-28 text-center">Trạng thái</th>
+                    <th class="py-3 px-4 w-36 text-right">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for lesson in lessons %}
+                <tr class="hover:bg-slate-50/80 transition">
+                    <!-- Order -->
+                    <td class="py-4 px-4 text-center font-bold text-slate-700">
+                        <span class="w-7 h-7 rounded-full bg-slate-100 inline-flex items-center justify-center text-xs">
+                            {{ lesson.order }}
+                        </span>
+                    </td>
+
+                    <!-- Title & description -->
+                    <td class="py-4 px-4">
+                        <div class="font-bold text-slate-900">{{ lesson.title }}</div>
+                        {% if lesson.content_text %}
+                        <p class="text-xs text-slate-500 line-clamp-1 mt-0.5">{{ lesson.content_text }}</p>
+                        {% endif %}
+                    </td>
+
+                    <!-- Type badge -->
+                    <td class="py-4 px-4 whitespace-nowrap">
+                        {% if lesson.provider == 'youtube' %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                                <i class="fa-brands fa-youtube mr-1.5 text-red-600 text-sm"></i> YouTube Video
+                            </span>
+                        {% elif lesson.provider == 'gdrive' %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                <i class="fa-brands fa-google-drive mr-1.5 text-blue-600 text-sm"></i> Drive PDF
+                            </span>
+                        {% elif lesson.provider == 'gslides' %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                                <i class="fa-solid fa-file-powerpoint mr-1.5 text-amber-600 text-sm"></i> Google Slides
+                            </span>
+                        {% elif lesson.provider == 'gforms' %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                                <i class="fa-solid fa-clipboard-question mr-1.5 text-purple-600 text-sm"></i> Google Forms
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
+                                <i class="fa-solid fa-file-lines mr-1.5 text-slate-500 text-sm"></i> Bài đọc
+                            </span>
+                        {% endif %}
+
+                        {% if lesson.duration_seconds > 0 %}
+                        <div class="text-[11px] text-slate-400 mt-1">
+                            <i class="fa-regular fa-clock mr-1"></i>{{ lesson.duration_seconds }}s (Ngưỡng: {{ lesson.min_watch_percent }}%)
+                        </div>
+                        {% endif %}
+                    </td>
+
+                    <!-- Source link & embed info -->
+                    <td class="py-4 px-4 text-xs">
+                        {% if lesson.external_id %}
+                        <div class="font-mono text-slate-600 truncate max-w-[200px]" title="{{ lesson.raw_url }}">
+                            ID: {{ lesson.external_id }}
+                        </div>
+                        <a href="{{ lesson.embed_url }}" target="_blank" class="text-blue-600 hover:underline inline-flex items-center mt-0.5 text-[11px]">
+                            <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i>Xem link nhúng
+                        </a>
+                        {% else %}
+                        <span class="text-slate-400 italic">Không có link ngoài</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Status -->
+                    <td class="py-4 px-4 text-center">
+                        {% if lesson.is_published %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Công khai
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
+                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400 mr-1.5"></span>Ẩn
+                        </span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Actions -->
+                    <td class="py-4 px-4 text-right whitespace-nowrap">
+                        <div class="inline-flex items-center space-x-1">
+                            <a href="{% url 'courses:lesson_detail' course.code lesson.order %}" 
+                               class="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Xem trước giao diện">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                            <a href="{% url 'courses:teacher_lesson_update' course.code lesson.id %}" 
+                               class="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="Chỉnh sửa">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </a>
+                            <a href="{% url 'courses:teacher_lesson_delete' course.code lesson.id %}" 
+                               class="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Xóa">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="py-12 text-center text-slate-400">
+                        <i class="fa-solid fa-folder-open text-3xl mb-2 block opacity-40"></i>
+                        Khóa học này chưa có bài giảng nào. Hãy bấm <b>"Thêm bài giảng mới"</b> để bắt đầu nhúng nội dung.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

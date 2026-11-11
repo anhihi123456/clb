@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Chỉnh sửa bài học: {{ lesson.title }}{% else %}Thêm bài học mới - {{ course.title }}{% endif %}{% endblock %}
+
+{% block content %}
+<!-- BREADCRUMBS -->
+<nav class="flex items-center text-xs text-slate-500 mb-4 space-x-2">
+    <a href="{% url 'courses:teacher_dashboard' %}" class="hover:text-blue-600">Quản lý bài giảng</a>
+    <span>/</span>
+    <a href="{% url 'courses:teacher_lesson_list' course.code %}" class="hover:text-blue-600">{{ course.code }}</a>
+    <span>/</span>
+    <span class="text-slate-800 font-semibold">{% if is_edit %}Chỉnh sửa bài học{% else %}Thêm mới{% endif %}</span>
+</nav>
+
+<div class="mb-6">
+    <h1 class="text-2xl font-extrabold text-slate-900">
+        {% if is_edit %}Chỉnh sửa bài học #{{ lesson.order }}{% else %}Thêm bài giảng mới{% endif %}
+    </h1>
+    <p class="text-sm text-slate-500">Khóa học: <span class="font-semibold text-slate-700">[{{ course.code }}] {{ course.title }}</span></p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <!-- FORM COLUMN (7 cols) -->
+    <div class="lg:col-span-7">
+        <form method="post" class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <!-- Title & Order -->
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div class="sm:col-span-3">
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">
+                        Tiêu đề bài học <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.title }}
+                    {% if form.title.errors %}<p class="text-xs text-red-500 mt-1">{{ form.title.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">
+                        Thứ tự <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.order }}
+                    {% if form.order.errors %}<p class="text-xs text-red-500 mt-1">{{ form.order.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <!-- Lesson Type -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">
+                    Loại học liệu <span class="text-red-500">*</span>
+                </label>
+                {{ form.lesson_type }}
+                {% if form.lesson_type.errors %}<p class="text-xs text-red-500 mt-1">{{ form.lesson_type.errors.0 }}</p>{% endif %}
+                <p class="text-xs text-slate-400 mt-1">Chọn định dạng để hệ thống tối ưu bộ xử lý nhúng phù hợp.</p>
+            </div>
+
+            <!-- Raw Link (Embed input) -->
+            <div class="bg-blue-50/60 p-4 sm:p-5 rounded-xl border border-blue-100">
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-sm font-bold text-blue-900">
+                        <i class="fa-solid fa-link mr-1.5 text-blue-600"></i>Đường dẫn liên kết (Link cần nhúng)
+                    </label>
+                    <span id="validation-badge" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                        Chưa nhập link
+                    </span>
+                </div>
+                
+                {{ form.raw_url }}
+                {% if form.raw_url.errors %}<p class="text-xs text-red-600 font-semibold mt-1">{{ form.raw_url.errors.0 }}</p>{% endif %}
+
+                <!-- Helper tags for quick copy format -->
+                <div class="mt-2.5 text-xs text-slate-600 space-y-1">
+                    <p class="font-medium text-slate-700">Các định dạng được hỗ trợ:</p>
+                    <ul class="list-disc list-inside text-slate-500 space-y-0.5 pl-1">
+                        <li><b>YouTube Video:</b> <code class="bg-white px-1 py-0.5 rounded border text-[11px]">https://www.youtube.com/watch?v=...</code> hoặc <code class="bg-white px-1 py-0.5 rounded border text-[11px]">https://youtu.be/...</code></li>
+                        <li><b>Google Drive (PDF/Slide):</b> <code class="bg-white px-1 py-0.5 rounded border text-[11px]">https://drive.google.com/file/d/.../view</code></li>
+                        <li><b>Google Slides:</b> <code class="bg-white px-1 py-0.5 rounded border text-[11px]">https://docs.google.com/presentation/d/.../edit</code></li>
+                        <li><b>Google Forms:</b> <code class="bg-white px-1 py-0.5 rounded border text-[11px]">https://docs.google.com/forms/d/e/.../viewform</code></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Video settings (Duration & min_watch_percent) -->
+            <div id="video-settings-group" class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                        <i class="fa-regular fa-clock mr-1 text-slate-500"></i>Thời lượng video (giây)
+                    </label>
+                    {{ form.duration_seconds }}
+                    <span class="text-[11px] text-slate-400 mt-1 block">Ví dụ: 300 (tương đương 5 phút)</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                        <i class="fa-solid fa-percent mr-1 text-slate-500"></i>Ngưỡng đạt (% xem bài)
+                    </label>
+                    {{ form.min_watch_percent }}
+                    <span class="text-[11px] text-slate-400 mt-1 block">Mặc định: 80% (Học viên cần xem >= 80% để tính hoàn thành)</span>
+                </div>
+            </div>
+
+            <!-- Content text (notes/instructions) -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">
+                    Ghi chú & Hướng dẫn bài giảng (Tùy chọn)
+                </label>
+                {{ form.content_text }}
+                {% if form.content_text.errors %}<p class="text-xs text-red-500 mt-1">{{ form.content_text.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Published checkbox -->
+            <div class="flex items-center space-x-3 pt-2">
+                {{ form.is_published }}
+                <label for="id_is_published" class="text-sm font-medium text-slate-700 cursor-pointer">
+                    Công khai bài giảng này cho học viên ngay
+                </label>
+            </div>
+
+            <!-- Form buttons -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                <a href="{% url 'courses:teacher_lesson_list' course.code %}" 
+                   class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition">
+                    Hủy bỏ
+                </a>
+                <button type="submit" 
+                        class="px-6 py-2.5 rounded-xl font-bold text-sm text-white bg-blue-600 hover:bg-blue-700 shadow-sm hover:shadow transition">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i>{% if is_edit %}Lưu thay đổi{% else %}Tạo bài học{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- LIVE PREVIEW COLUMN (5 cols) -->
+    <div class="lg:col-span-5">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-24">
+            <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-3">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center">
+                    <i class="fa-solid fa-display mr-2 text-blue-600"></i>Xem trước nhúng thực tế (Live Preview)
+                </h3>
+                <span id="preview-status" class="text-[11px] text-slate-400">Đang chờ nhập link</span>
+            </div>
+
+            <!-- PREVIEW CONTAINER -->
+            <div id="preview-box" class="min-h-[260px] bg-slate-900 rounded-xl overflow-hidden flex flex-col items-center justify-center p-4 text-center text-slate-400">
+                <i class="fa-solid fa-photo-film text-3xl mb-2 opacity-30 text-white"></i>
+                <p class="text-xs">Dán đường dẫn YouTube hoặc Google Drive bên trái để xem thử bài giảng trực tiếp tại đây.</p>
+            </div>
+
+            <!-- EXTRACTED METADATA DISPLAY -->
+            <div id="metadata-box" class="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs hidden">
+                <div class="grid grid-cols-2 gap-2 text-slate-600">
+                    <div>
+                        <span class="text-slate-400 block text-[10px] uppercase font-semibold">Nhà cung cấp:</span>
+                        <span id="meta-provider" class="font-bold text-slate-800"></span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block text-[10px] uppercase font-semibold">Mã định danh ID:</span>
+                        <span id="meta-id" class="font-mono text-slate-800 truncate block"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const rawUrlInput = document.getElementById('id_raw_url');
+    const lessonTypeSelect = document.getElementById('id_lesson_type');
+    const validationBadge = document.getElementById('validation-badge');
+    const previewStatus = document.getElementById('preview-status');
+    const previewBox = document.getElementById('preview-box');
+    const metadataBox = document.getElementById('metadata-box');
+    const metaProvider = document.getElementById('meta-provider');
+    const metaId = document.getElementById('meta-id');
+    const videoSettingsGroup = document.getElementById('video-settings-group');
+
+    let debounceTimer = null;
+
+    function toggleVideoSettings() {
+        const type = lessonTypeSelect.value;
+        if (type === 'video') {
+            videoSettingsGroup.style.display = 'grid';
+        } else {
+            videoSettingsGroup.style.display = 'none';
+        }
+    }
+
+    lessonTypeSelect.addEventListener('change', () => {
+        toggleVideoSettings();
+        triggerParse();
+    });
+
+    rawUrlInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(triggerParse, 400);
+    });
+
+    async function triggerParse() {
+        const url = rawUrlInput.value.trim();
+        const type = lessonTypeSelect.value;
+
+        if (!url) {
+            validationBadge.className = 'text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600';
+            validationBadge.textContent = 'Chưa nhập link';
+            previewStatus.textContent = 'Đang chờ nhập link';
+            previewBox.innerHTML = `
+                <i class="fa-solid fa-photo-film text-3xl mb-2 opacity-30 text-white"></i>
+                <p class="text-xs">Dán đường dẫn YouTube hoặc Google Drive bên trái để xem thử bài giảng trực tiếp tại đây.</p>
+            `;
+            metadataBox.classList.add('hidden');
+            return;
+        }
+
+        validationBadge.className = 'text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700';
+        validationBadge.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Đang kiểm tra...';
+        previewStatus.textContent = 'Đang phân tích link...';
+
+        try {
+            const resp = await fetch(`/api/parse-embed/?url=${encodeURIComponent(url)}&type=${encodeURIComponent(type)}`);
+            const data = await resp.json();
+
+            if (data.valid) {
+                validationBadge.className = 'text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+                validationBadge.innerHTML = '<i class="fa-solid fa-check mr-1"></i>Hợp lệ (' + data.provider + ')';
+                previewStatus.textContent = 'Đã tải thành công';
+
+                // Render live iframe preview
+                previewBox.innerHTML = `
+                    <div class="w-full aspect-video-container rounded-lg overflow-hidden bg-black shadow-inner">
+                        <iframe src="${data.embed_url}" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+                    </div>
+                `;
+
+                metadataBox.classList.remove('hidden');
+                metaProvider.textContent = data.provider.toUpperCase();
+                metaId.textContent = data.external_id;
+            } else {
+                validationBadge.className = 'text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700';
+                validationBadge.innerHTML = '<i class="fa-solid fa-xmark mr-1"></i>Không nhận diện';
+                previewStatus.textContent = 'Lỗi liên kết';
+                previewBox.innerHTML = `
+                    <div class="p-4 text-center text-red-400">
+                        <i class="fa-solid fa-triangle-exclamation text-2xl mb-1 text-red-400"></i>
+                        <p class="text-xs text-red-300 font-medium">${data.error}</p>
+                    </div>
+                `;
+                metadataBox.classList.add('hidden');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    // Run on page load if editing
+    document.addEventListener('DOMContentLoaded', () => {
+        toggleVideoSettings();
+        if (rawUrlInput.value) {
+            triggerParse();
+        }
+    });
+</script>
+{% endblock %}
+

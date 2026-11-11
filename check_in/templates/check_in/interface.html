@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Điểm Danh Check-in GPS</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #1e293b;
+            padding: 30px;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+        }
+        h2 { color: #38bdf8; margin-top: 0; }
+        p { color: #94a3b8; font-size: 14px; line-height: 1.5; }
+        button {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+        button:hover { background-color: #0369a1; }
+        button:disabled { background-color: #475569; cursor: not-allowed; }
+        #status-box {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+            font-size: 14px;
+            text-align: left;
+            line-height: 1.5;
+        }
+        .success { background-color: #064e3b; color: #6ee7b7; border: 1px solid #059669; }
+        .error { background-color: #7f1d1d; color: #fca5a5; border: 1px solid #dc2626; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Điểm Danh Sự Kiện</h2>
+    <p>Nhấn nút bên dưới để hệ thống xác thực khoảng cách từ thiết bị của bạn đến vị trí mục tiêu.</p>
+    
+    <button id="btn-checkin" onclick="triggerCheckIn()">📍 BẮT ĐẦU CHECK-IN</button>
+    <div id="status-box"></div>
+</div>
+
+<script>
+function triggerCheckIn() {
+    const btn = document.getElementById("btn-checkin");
+    const statusBox = document.getElementById("status-box");
+    
+    if (!navigator.geolocation) {
+        showStatus("Trình duyệt không hỗ trợ Geolocation (định vị GPS).", false);
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "Đang lấy tín hiệu GPS...";
+    statusBox.style.display = "none";
+
+    navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+            btn.innerText = "Đang gửi tọa độ lên máy chủ...";
+            const payload = {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                accuracy: pos.coords.accuracy
+            };
+
+            try {
+                // Gửi trực tiếp đến route API check-in
+                const response = await fetch("/check-in/api/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    showStatus(`<b>✅ ${data.message}</b><br>Khoảng cách: ${data.distance_meters}m<br>Độ chính xác GPS: ±${Math.round(data.user_location.accuracy_meters || 0)}m`, true);
+                } else {
+                    showStatus(`<b>❌ ${data.message || data.error}</b><br>Khoảng cách đo được: ${data.distance_meters || 'N/A'}m`, false);
+                }
+            } catch (err) {
+                showStatus("Lỗi kết nối máy chủ: " + err.message, false);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "📍 BẮT ĐẦU CHECK-IN";
+            }
+        },
+        (err) => {
+            btn.disabled = false;
+            btn.innerText = "📍 BẮT ĐẦU CHECK-IN";
+            let msg = "Lỗi GPS: ";
+            if (err.code === 1) msg += "Bạn đã từ chối cấp quyền truy cập vị trí trên trình duyệt.";
+            else if (err.code === 2) msg += "Không lấy được vị trí GPS thiết bị.";
+            else msg += "Hết thời gian chờ phản hồi GPS.";
+            showStatus(msg, false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+}
+
+function showStatus(html, isSuccess) {
+    const box = document.getElementById("status-box");
+    box.style.display = "block";
+    box.className = isSuccess ? "success" : "error";
+    box.innerHTML = html;
+}
+</script>
+
+</body>
+</html>

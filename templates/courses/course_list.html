@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Danh sách Khóa học Kỹ Năng Mềm - CLB o365{% endblock %}
+
+{% block content %}
+<!-- HERO BANNER -->
+<div class="relative overflow-hidden bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-3xl p-8 sm:p-12 mb-10 shadow-xl shadow-blue-900/10">
+    <div class="relative z-10 max-w-2xl">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-400/30 mb-4 backdrop-blur-sm">
+            <i class="fa-solid fa-sparkles text-amber-400"></i> Khóa Kỹ Năng Mềm 2026 · CLB o365
+        </span>
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight mb-3">
+            Làm chủ bộ kỹ năng tin học văn phòng chuẩn quốc tế
+        </h1>
+        <p class="text-sm sm:text-base text-blue-100/80 mb-6 leading-relaxed">
+            Học tập linh hoạt qua video bài giảng chất lượng cao, tài liệu chuẩn và bài thực hành thực tế về Microsoft Word, Excel và PowerPoint.
+        </p>
+
+        {% if not user.is_authenticated %}
+        <div class="flex items-center gap-3">
+            <a href="{% url 'accounts:login' %}" 
+               class="inline-flex items-center px-5 py-3 rounded-xl font-bold text-sm text-slate-900 bg-white hover:bg-blue-50 shadow-lg shadow-white/10 transition">
+                <i class="fa-solid fa-right-to-bracket mr-2 text-blue-600"></i>Đăng nhập để vào học
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Decorative shape -->
+    <div class="absolute -right-12 -bottom-12 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+</div>
+
+<!-- SECTION TITLE -->
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900">Các khóa học trực tuyến</h2>
+        <p class="text-xs sm:text-sm text-slate-500">Hoàn thành các bài giảng và bài kiểm tra để đủ điều kiện nhận minh chứng KNM.</p>
+    </div>
+    {% if user.is_authenticated and user.is_teacher_or_admin %}
+    <a href="{% url 'courses:teacher_dashboard' %}" 
+       class="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition">
+        <i class="fa-solid fa-pen-to-square mr-1.5"></i>Giao diện Giảng viên
+    </a>
+    {% endif %}
+</div>
+
+<!-- COURSE CARDS -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+    {% for course in courses %}
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition overflow-hidden flex flex-col group">
+        <!-- Top banner icon -->
+        <div class="p-6 
+            {% if course.code == 'WORD' %}bg-gradient-to-br from-blue-600 to-blue-800 text-white
+            {% elif course.code == 'EXCEL' %}bg-gradient-to-br from-emerald-600 to-emerald-800 text-white
+            {% else %}bg-gradient-to-br from-amber-600 to-orange-700 text-white{% endif %}">
+            
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl shadow-inner">
+                    {% if course.code == 'WORD' %}<i class="fa-solid fa-file-word"></i>
+                    {% elif course.code == 'EXCEL' %}<i class="fa-solid fa-file-excel"></i>
+                    {% else %}<i class="fa-solid fa-file-powerpoint"></i>{% endif %}
+                </div>
+                <span class="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-black/20 text-white">
+                    {{ course.code }}
+                </span>
+            </div>
+
+            <h3 class="text-xl font-bold leading-snug group-hover:underline">{{ course.title }}</h3>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6 flex-1 flex flex-col justify-between">
+            <div>
+                <p class="text-sm text-slate-600 line-clamp-3 mb-4 leading-relaxed">
+                    {{ course.description }}
+                </p>
+
+                <!-- Lessons & format info -->
+                <div class="flex items-center gap-4 text-xs text-slate-500 mb-4 pb-4 border-b border-slate-100">
+                    <span class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-play-circle text-blue-500"></i>{{ course.lessons.count }} bài giảng
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-certificate text-amber-500"></i>Cấp minh chứng
+                    </span>
+                </div>
+
+                <!-- Instructors -->
+                <div class="mb-4">
+                    <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">Giảng viên:</span>
+                    <div class="flex flex-wrap gap-1">
+                        {% for teacher in course.instructors.all %}
+                        <span class="text-xs text-slate-700 font-medium">
+                            <i class="fa-solid fa-user-tie text-slate-400 mr-1"></i>{{ teacher.get_full_name|default:teacher.username }}{% if not forloop.last %},{% endif %}
+                        </span>
+                        {% empty %}
+                        <span class="text-xs text-slate-400 italic">CLB o365</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer CTA -->
+            <div>
+                <a href="{% url 'courses:course_detail' course.code %}" 
+                   class="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl font-bold text-sm text-white 
+                   {% if course.code == 'WORD' %}bg-blue-600 hover:bg-blue-700
+                   {% elif course.code == 'EXCEL' %}bg-emerald-600 hover:bg-emerald-700
+                   {% else %}bg-amber-600 hover:bg-amber-700{% endif %} shadow-sm transition">
+                    Vào xem bài học <i class="fa-solid fa-arrow-right ml-2 text-xs"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
